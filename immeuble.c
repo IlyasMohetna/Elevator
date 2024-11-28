@@ -51,3 +51,15 @@ void afficher_immeuble(const Immeuble *immeuble) {
         printf("\n");
     }
 }
+
+// Fonction pour avoir toute les activités pour un étage spécifique
+
+void activites_pour_etage(int etage, const Immeuble *immeuble) {
+    printf("Activités pour l'étage %d : ", etage);
+    for (int i = 0; i < immeuble->etages[etage].nombre_activites; i++) {
+        printf("%s", immeuble->etages[etage].activites[i]);
+        if (i < immeuble->etages[etage].nombre_activites - 1) {
+            printf(", ");
+        }
+    }
+}

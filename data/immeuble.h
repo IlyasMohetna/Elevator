@@ -17,5 +17,6 @@ typedef struct {
 // Prototypes des fonctions
 void initialiser_immeuble(Immeuble *immeuble);
 void afficher_immeuble(const Immeuble *immeuble);
+void activites_pour_etage(int etage, const Immeuble *immeuble);
 
 #endif // IMMEUBLE_H

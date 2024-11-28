@@ -8,7 +8,7 @@
 #include "data/ascenseur.h"
 
 // Function to handle incoming messages
-void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur) {
+void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur, Immeuble *immeuble) {
     MessageIPC message;
 
     while (1) {
@@ -51,15 +51,20 @@ void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur) {
             } else {
                 printf("[Elevator] No available elevators.\n");
             }
+
         } else if (message.type == MSG_TYPE_REPLY_FROM_ELEVATOR) { // Réponse d'un ascenseur
             printf("[Elevator] Response received: Elevator %d reached floor %d\n",
                    message.numero_ascenseur, message.etage_demande);
+
+            // afficher les activité pour l'étage en question
+            activites_pour_etage(message.etage_demande, immeuble);
 
             // Mettre à jour l'état de l'ascenseur concerné
             int idx = message.numero_ascenseur - 1;
             systeme_ascenseur->ascenseurs[idx].etage_actuel = message.etage_demande;
             systeme_ascenseur->ascenseurs[idx].etat = EN_ATTENTE;
             systeme_ascenseur->ascenseurs[idx].direction = NEUTRE;
+
         } else if (message.type == MSG_TYPE_STATUS_REQUEST) { // Type 4
             printf("[Elevator] Status request received.\n");
             for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
@@ -72,6 +77,9 @@ void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur) {
                 // Envoyer l'état de l'ascenseur au contrôleur
                 if (msgsnd(file_id, &response, sizeof(response) - sizeof(long), 0) == -1) {
                     perror("[Elevator] Error sending elevator state");
+                }
+                else {
+                    printf("[Elevator] Sent status for elevator %d\n", response.numero_ascenseur);
                 }
             }
         } else {
@@ -114,7 +122,7 @@ int main() {
     }
 
     // Handle incoming messages
-    handle_message(file_id, &systeme_ascenseur);
+    handle_message(file_id, &systeme_ascenseur, &immeuble);
 
     // Wait for child processes to finish
     for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
