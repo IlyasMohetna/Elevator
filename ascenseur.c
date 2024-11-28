@@ -36,15 +36,19 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
     Ascenseur ascenseur = {numero_ascenseur, 0, EN_ATTENTE, NEUTRE};
 
     while (1) {
-        // Réception des demandes
-        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), 1, 0) == -1) {
+        // Recevoir les messages de type 2 (assignations du processus principal)
+        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_ASSIGN_TO_ELEVATOR, 0) == -1) {
             perror("Erreur réception message");
-            break; // Quitter si la file est supprimée
+            break;
         }
 
-        printf("Ascenseur %d : Demande reçue pour l'étage %d (Direction : %s)\n",
-               ascenseur.numero, message.etage_demande,
-               message.direction == MONTE ? "Monte" : "Descend");
+        // Vérifier que le message est destiné à cet ascenseur
+        if (message.numero_ascenseur != ascenseur.numero) {
+            continue; // Ignorer si ce n'est pas pour cet ascenseur
+        }
+
+        printf("Ascenseur %d : Demande reçue pour l'étage %d\n",
+               ascenseur.numero, message.etage_demande);
 
         // Mettre à jour l'état de l'ascenseur
         ascenseur.etat = EN_MOUVEMENT;
@@ -62,24 +66,18 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
         printf("Ascenseur %d : Arrivé à l'étage %d\n", ascenseur.numero, ascenseur.etage_actuel);
 
         // Réponse au processus principal
-        message.type = 2; // Réponse
+        message.type = MSG_TYPE_REPLY_FROM_ELEVATOR; // Réponse
+        message.etage_demande = ascenseur.etage_actuel;
+        message.direction = ascenseur.direction;
+        message.numero_ascenseur = ascenseur.numero;
+
         if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
             perror("Erreur envoi message");
-            break; // Quitter si la file est supprimée
+            break;
         }
 
         // Retour à l'état en attente
         ascenseur.etat = EN_ATTENTE;
-
-        // Send periodic state updates to the parent
-        MessageIPC state_message;
-        state_message.type = 3; // Use type 3 for periodic updates
-        state_message.etage_demande = ascenseur.etage_actuel;
-        state_message.direction = ascenseur.direction;
-
-        if (msgsnd(file_id, &state_message, sizeof(state_message) - sizeof(long), 0) == -1) {
-            perror("Error sending state update");
-        }
     }
 
     printf("Ascenseur %d : Fin du processus\n", ascenseur.numero);

@@ -14,6 +14,13 @@
 #define DESCEND 0
 #define NEUTRE -1
 
+// Définition des types de messages
+#define MSG_TYPE_REQUEST_FROM_CONTROLLER 1 // demande venant du contrôleur pour un ascenseur
+#define MSG_TYPE_ASSIGN_TO_ELEVATOR 2 // assignation d'une demande de changement d'étage à un ascenseur
+#define MSG_TYPE_REPLY_FROM_ELEVATOR 3 // réponse d'un ascenseur à une demande de changement d'étage
+#define MSG_TYPE_STATUS_REQUEST 4 // demande de l'état des ascenseurs
+#define MSG_TYPE_STATUS_RESPONSE 5 // réponse de l'état des ascenseurs
+
 typedef struct {
     int numero;          // Numéro d'identification
     int etage_actuel;    // Étage où se trouve l'ascenseur
@@ -28,9 +35,10 @@ typedef struct {
 
 // Structure pour les messages entre processus
 typedef struct {
-    long type;          // Type de message (1 = demande, 2 = réponse)
-    int etage_demande;  // Étage où se fait la demande
-    int direction;      // Direction demandée (MONTE ou DESCEND)
+    long type;             // Type de message
+    int etage_demande;     // Étage demandé ou actuel
+    int direction;         // Direction (MONTE, DESCEND, NEUTRE)
+    int numero_ascenseur;  // Numéro de l'ascenseur
 } MessageIPC;
 
 // Prototypes

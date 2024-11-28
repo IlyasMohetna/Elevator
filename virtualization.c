@@ -4,12 +4,12 @@
 #include <sys/shm.h>
 #include "data/ascenseur.h"
 
-void afficher_batiment(SharedData *shared_data) {
+void afficher_batiment(SystemeAscenseur *shared_system) {
     system("clear"); // Clear the screen
     for (int etage = NOMBRE_ETAGES - 1; etage >= 0; etage--) {
         printf("Étage %2d: ", etage);
         for (int ascenseur = 0; ascenseur < NOMBRE_ASCENSEURS; ascenseur++) {
-            if (shared_data->ascenseurs[ascenseur].etage_actuel == etage) {
+            if (shared_system->ascenseurs[ascenseur].etage_actuel == etage) {
                 printf("[A%d] ", ascenseur + 1); // Elevator at this floor
             } else {
                 printf("     "); // Empty space
@@ -20,25 +20,40 @@ void afficher_batiment(SharedData *shared_data) {
 }
 
 int main() {
-    // Attach to shared memory
-    int shm_id = shmget(IPC_PRIVATE, sizeof(SharedData), 0666);
+    // Création de la mémoire partagée
+    int shm_id = shmget(IPC_PRIVATE, sizeof(SystemeAscenseur), IPC_CREAT | 0666);
     if (shm_id == -1) {
-        perror("[Visualizer] Error accessing shared memory");
+        perror("[Visualizer] Error creating shared memory");
         exit(1);
     }
 
-    SharedData *shared_data = (SharedData *)shmat(shm_id, NULL, 0);
-    if (shared_data == (void *)-1) {
+    SystemeAscenseur *shared_system = (SystemeAscenseur *)shmat(shm_id, NULL, 0);
+    if (shared_system == (void *)-1) {
         perror("[Visualizer] Error attaching shared memory");
         exit(1);
     }
 
-    // Continuously display the building
-    while (1) {
-        afficher_batiment(shared_data);
-        sleep(1); // Update every second
+    // Initialisation des ascenseurs dans la mémoire partagée
+    initialiser_ascenseurs(shared_system);
+
+    // Lancer le processus de visualisation
+    pid_t pid = fork();
+    if (pid == 0) {
+        // Processus enfant : visualiseur
+        while (1) {
+            afficher_batiment(shared_system);
+            sleep(1); // Mise à jour chaque seconde
+        }
+        shmdt(shared_system);
+        exit(0);
+    } else if (pid > 0) {
+        // Processus parent : continuer l'exécution normale
+        // ...existing code...
+    } else {
+        perror("Erreur lors du fork");
+        exit(1);
     }
 
-    shmdt(shared_data);
+    // ...existing code...
     return 0;
 }

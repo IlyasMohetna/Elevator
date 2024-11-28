@@ -16,21 +16,21 @@ void afficher_menu() {
 // Request the list of elevators
 void afficher_ascenseurs(int file_id) {
     MessageIPC message;
-    message.type = 3; // Type 3: Request elevator list
+    message.type = MSG_TYPE_STATUS_REQUEST; // Type 4: Demande d'état
 
-    // Send the list request
+    // Envoyer la demande au processus principal
     if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
-        perror("[Controller] Error sending list request");
+        perror("[Controller] Error sending status request");
         return;
     }
 
-    // Receive responses
+    // Recevoir les réponses de type 5
     printf("\n=== Liste des Ascenseurs ===\n");
     for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
-        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), 3, 0) == -1) {
+        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_STATUS_RESPONSE, 0) == -1) {
             perror("[Controller] Error receiving elevator state");
         } else {
-            printf("Ascenseur %d :\n", i + 1);
+            printf("Ascenseur %d :\n", message.numero_ascenseur);
             printf("  Étage actuel : %d\n", message.etage_demande);
             printf("  Direction : %s\n",
                    message.direction == MONTE ? "Monte" :
@@ -42,12 +42,12 @@ void afficher_ascenseurs(int file_id) {
 // Make an elevator request
 void faire_demande(int file_id) {
     MessageIPC message;
-    message.type = 1; // Type 1: Elevator request
+    message.type = MSG_TYPE_REQUEST_FROM_CONTROLLER; // Type 1: Demande d'ascenseur
 
     printf("\nEntrez l'étage où vous vous trouvez : ");
     scanf("%d", &message.etage_demande);
 
-    // Send the request
+    // Envoyer la demande au processus principal
     if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
         perror("[Controller] Error sending elevator request");
     } else {
