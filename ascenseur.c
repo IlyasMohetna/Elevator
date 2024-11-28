@@ -76,6 +76,55 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
             break;
         }
 
+        // Envoyer une notification d'arrivée au contrôleur
+        message.type = MSG_TYPE_NOTIFY_ARRIVAL;
+        message.numero_ascenseur = ascenseur.numero;
+        if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
+            perror("Erreur envoi message");
+            break;
+        }
+
+        // Recevoir la destination de l'utilisateur
+        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_DESTINATION_REQUEST, 0) == -1) {
+            perror("Erreur réception destination");
+            break;
+        }
+
+        // Déplacer vers l'étage de destination
+        printf("Ascenseur %d : Déplacement vers l'étage %d\n",
+               ascenseur.numero, message.etage_demande);
+
+        ascenseur.etat = EN_MOUVEMENT;
+        ascenseur.direction = (message.etage_demande > ascenseur.etage_actuel) ? MONTE : DESCEND;
+        // Simuler le déplacement
+        etages_a_parcourir = abs(message.etage_demande - ascenseur.etage_actuel);
+        sleep(etages_a_parcourir); // Simulation du temps de déplacement
+        ascenseur.etage_actuel = message.etage_demande;
+
+        ascenseur.etat = A_L_ARRET;
+        ascenseur.direction = NEUTRE;
+
+        printf("Ascenseur %d : Arrivé à l'étage %d\n", ascenseur.numero, ascenseur.etage_actuel);
+        
+        // Réponse au processus principal
+        message.type = MSG_TYPE_REPLY_FROM_ELEVATOR; // Réponse
+        message.etage_demande = ascenseur.etage_actuel;
+        message.direction = ascenseur.direction;
+        message.numero_ascenseur = ascenseur.numero;
+
+        if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
+            perror("Erreur envoi message");
+            break;
+        }
+
+        // Envoyer une notification d'arrivée au contrôleur
+        message.type = MSG_TYPE_NOTIFY_ARRIVAL;
+        message.numero_ascenseur = ascenseur.numero;
+        if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
+            perror("Erreur envoi message");
+            break;
+        }
+
         // Retour à l'état en attente
         ascenseur.etat = EN_ATTENTE;
     }

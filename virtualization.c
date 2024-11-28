@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <sys/shm.h>
 #include "data/ascenseur.h"
+#include "data/immeuble.h"
 
 void afficher_batiment(SystemeAscenseur *shared_system) {
     system("clear"); // Clear the screen
@@ -17,6 +18,11 @@ void afficher_batiment(SystemeAscenseur *shared_system) {
         }
         printf("\n");
     }
+}
+
+void cleanup_shared_memory(int shm_id, SystemeAscenseur *shared_system) {
+    shmdt(shared_system);
+    shmctl(shm_id, IPC_RMID, NULL);
 }
 
 int main() {
@@ -55,5 +61,6 @@ int main() {
     }
 
     // ...existing code...
+    cleanup_shared_memory(shm_id, shared_system);
     return 0;
 }

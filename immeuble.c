@@ -62,4 +62,5 @@ void activites_pour_etage(int etage, const Immeuble *immeuble) {
             printf(", ");
         }
     }
+    printf("\n");
 }

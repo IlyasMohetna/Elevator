@@ -20,6 +20,8 @@
 #define MSG_TYPE_REPLY_FROM_ELEVATOR 3 // réponse d'un ascenseur à une demande de changement d'étage
 #define MSG_TYPE_STATUS_REQUEST 4 // demande de l'état des ascenseurs
 #define MSG_TYPE_STATUS_RESPONSE 5 // réponse de l'état des ascenseurs
+#define MSG_TYPE_DESTINATION_REQUEST 6 // User's destination floor
+#define MSG_TYPE_NOTIFY_ARRIVAL 7      // Elevator arrival notification
 
 typedef struct {
     int numero;          // Numéro d'identification
@@ -36,7 +38,7 @@ typedef struct {
 // Structure pour les messages entre processus
 typedef struct {
     long type;             // Type de message
-    int etage_demande;     // Étage demandé ou actuel
+    int etage_demande;     // Étage demandé / actuel / destination
     int direction;         // Direction (MONTE, DESCEND, NEUTRE)
     int numero_ascenseur;  // Numéro de l'ascenseur
 } MessageIPC;
