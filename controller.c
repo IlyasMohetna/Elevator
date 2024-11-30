@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <unistd.h> // Added to use sleep function
 #include "data/ascenseur.h"
 #include "data/immeuble.h"
+#include "data/usager.h"
 
 // Show the menu
 void afficher_menu() {
@@ -11,6 +13,7 @@ void afficher_menu() {
     printf("1. Faire une demande d'ascenseur\n");
     printf("2. Voir l'état des ascenseurs\n");
     printf("3. Quitter\n");
+    printf("4. Randomize demandes d'ascenseur\n"); // Added option 4
     printf("Votre choix : ");
 }
 
@@ -90,6 +93,35 @@ void faire_demande(int file_id, Immeuble *immeuble) {
     }
 }
 
+// Function to generate and send random elevator requests
+void randomize_demande(int file_id, Immeuble *immeuble, int nombre_demande) {
+    (void)immeuble; // Mark as unused to suppress compiler warning
+
+    for (int i = 0; i < nombre_demande; i++) {
+        int etage_depart = rand() % NOMBRE_ETAGES;
+        int etage_arrivee = rand() % NOMBRE_ETAGES;
+        while (etage_arrivee == etage_depart) {
+            etage_arrivee = rand() % NOMBRE_ETAGES;
+        }
+
+        MessageIPC message;
+        message.type = MSG_TYPE_REQUEST_FROM_CONTROLLER; // Type 1
+        message.source = SOURCE_CONTROLLER; // 1 for Controller
+        message.etage_demande = etage_depart;
+        message.numero_ascenseur = 0; // 0 can represent a system-generated request
+
+        // Send the request to the main process
+        if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
+            perror("[Controller] Error sending random elevator request");
+        } else {
+            printf("[Controller] Random Request %d: From Etage %d to Etage %d.\n", 
+                   i + 1, etage_depart, etage_arrivee);
+        }
+
+        sleep(1); // Pause between requests for readability
+    }
+}
+
 int main() {
     int file_id;
     int choix;
@@ -110,6 +142,11 @@ int main() {
         } else if (choix == 3) {
             printf("Fermeture du contrôleur.\n");
             break;
+        } else if (choix == 4) { // Handle randomize option
+            int nombre_demande;
+            printf("Entrez le nombre de demandes aléatoires à créer : ");
+            scanf("%d", &nombre_demande);
+            randomize_demande(file_id, &immeuble, nombre_demande);
         } else {
             printf("Choix invalide. Veuillez réessayer.\n");
         }

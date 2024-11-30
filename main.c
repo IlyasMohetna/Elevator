@@ -4,8 +4,10 @@
 #include <sys/msg.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "data/immeuble.h"
 #include "data/ascenseur.h"
+#include "data/usager.h"
 
 // Function to handle incoming messages
 void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur) {
@@ -86,6 +88,38 @@ void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur) {
     }
 }
 
+// Function to simulate user requests
+void* simulate_usagers(void* arg) {
+    int file_id = *(int*)arg;
+    int user_id = 1;
+    while (1) {
+        Usager usager;
+        usager.id = user_id++;
+        usager.etage_depart = rand() % NOMBRE_ETAGES;
+        usager.etage_arrivee = rand() % NOMBRE_ETAGES;
+        while (usager.etage_arrivee == usager.etage_depart) {
+            usager.etage_arrivee = rand() % NOMBRE_ETAGES;
+        }
+
+        MessageIPC message;
+        message.type = MSG_TYPE_REQUEST_FROM_CONTROLLER;
+        message.source = SOURCE_CONTROLLER;
+        message.etage_demande = usager.etage_depart;
+        message.numero_ascenseur = usager.id; // Using user ID as elevator number for uniqueness
+
+        // Send user request to controller
+        if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
+            perror("[Main] Error sending user request");
+        } else {
+            printf("[Main] Usager %d demandé depuis l'étage %d vers l'étage %d.\n",
+                   usager.id, usager.etage_depart, usager.etage_arrivee);
+        }
+
+        sleep(rand() % 5 + 1); // Wait between 1 to 5 seconds before next user
+    }
+    return NULL;
+}
+
 int main() {
     Immeuble immeuble; 
     SystemeAscenseur systeme_ascenseur;
@@ -118,6 +152,16 @@ int main() {
             exit(1);
         }
     }
+
+    // Remove or comment out the user simulation thread
+    /*
+    // Create user simulation thread
+    pthread_t usager_thread;
+    if (pthread_create(&usager_thread, NULL, simulate_usagers, &file_id) != 0) {
+        perror("[Main] Error creating usager thread");
+        exit(1);
+    }
+    */
 
     // Handle incoming messages
     handle_message(file_id, &systeme_ascenseur);

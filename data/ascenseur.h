@@ -51,7 +51,7 @@ typedef struct {
     int source;            // Message source (1 = controller, 2 = visualizer)
     int etage_demande;     // Requested floor / current floor / destination
     int direction;         // Direction (MONTE, DESCEND, NEUTRE)
-    int numero_ascenseur;  // Elevator number
+    int numero_ascenseur;  // Elevator number or Usager ID
     int etat;              // Elevator state (EN_ATTENTE, EN_MOUVEMENT, A_L_ARRET)
 } MessageIPC;
 

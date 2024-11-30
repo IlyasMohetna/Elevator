@@ -24,28 +24,35 @@ void afficher_batiment_via_message_queue(int file_id) {
         elevator_positions[i] = -1; // Initialize positions to invalid
     }
 
+    // Array to track elevator states
+    int elevator_states[NOMBRE_ASCENSEURS];
+
     // Receive responses for all elevators
     for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
         if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_STATUS_RESPONSE, 0) == -1) {
             perror("[Visualizer] Error receiving elevator status");
             return;
         }
-        // Store elevator position
+        // Store elevator position and state
         elevator_positions[message.numero_ascenseur - 1] = message.etage_demande;
+        elevator_states[message.numero_ascenseur - 1] = message.etat; // Fixed from etat_ascenseur to etat
     }
 
     // Clear the screen
     printf("\033[H\033[J");
     printf("=== Visualisation de l'Immeuble ===\n\n");
 
-    // Display building floors and elevator positions
+    // Display building floors and elevator positions with states
     for (int etage = NOMBRE_ETAGES - 1; etage >= 0; etage--) {
         printf("Étage %2d: ", etage);
         for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
             if (elevator_positions[i] == etage) {
-                printf("[A%d] ", i + 1); // Display elevator at this floor
+                const char *etat_str = (elevator_states[i] == EN_MOUVEMENT) ? "EN_MOUVEMENT" :
+                   (elevator_states[i] == A_L_ARRET) ? "A_L_ARRET" :
+                   (elevator_states[i] == EN_ATTENTE) ? "EN_ATTENTE" : "INCONNU";
+                printf("[A%d - %s] ", i + 1, etat_str);
             } else {
-                printf("     "); // Empty space
+                printf("              "); // Adjust spacing
             }
         }
         printf("\n");

@@ -4,6 +4,7 @@
 #include <sys/ipc.h>
 #include <sys/msg.h>
 #include "data/ascenseur.h"
+#include "data/usager.h"
 
 #define ASCENSEUR_BASE_TYPE 8  // Base message type for elevators
 
@@ -158,7 +159,7 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
 
         // Move to requested floor to pick up the user
         deplacer_ascenseur(&ascenseur, etage_cible, file_id);
-        printf("Ascenseur %d : Arrivé à l'étage %d\n", ascenseur.numero, ascenseur.etage_actuel);
+        printf("Ascenseur %d : Arrivé à l'étage %d pour Usager %d.\n", ascenseur.numero, ascenseur.etage_actuel, message.etage_demande);
 
         // Send reply to main process (state is now A_L_ARRET)
         message.etage_demande = ascenseur.etage_actuel;
@@ -177,7 +178,7 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
         // Wait for user to send destination
         if (recevoir_message(file_id, &message, message_type) == -1) break;
 
-        printf("Ascenseur %d : Destination reçue : étage %d\n", ascenseur.numero, message.etage_demande);
+        printf("Ascenseur %d : Destination reçue : étage %d pour Usager %d.\n", ascenseur.numero, message.etage_demande, message.numero_ascenseur);
 
         // The destination floor
         etage_cible = message.etage_demande;
@@ -195,7 +196,7 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
 
         // Move to destination floor
         deplacer_ascenseur(&ascenseur, etage_cible, file_id);
-        printf("Ascenseur %d : Arrivé à l'étage %d\n", ascenseur.numero, ascenseur.etage_actuel);
+        printf("Ascenseur %d : Arrivé à l'étage %d pour Usager %d.\n", ascenseur.numero, ascenseur.etage_actuel, message.numero_ascenseur);
 
         // Send reply to main process (state is now A_L_ARRET)
         message.etage_demande = ascenseur.etage_actuel;
