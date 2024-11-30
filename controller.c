@@ -18,6 +18,7 @@ void afficher_menu() {
 void afficher_ascenseurs(int file_id) {
     MessageIPC message;
     message.type = MSG_TYPE_STATUS_REQUEST; // Type 4: Demande d'état
+    message.source = 1; // 1 for Controller
 
     // Envoyer la demande au processus principal
     if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
