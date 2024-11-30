@@ -22,6 +22,8 @@
 #define MSG_TYPE_STATUS_RESPONSE 5 // réponse de l'état des ascenseurs
 #define MSG_TYPE_DESTINATION_REQUEST 6 // User's destination floor
 #define MSG_TYPE_NOTIFY_ARRIVAL 7      // Elevator arrival notification
+#define ASCENSEUR_1 8 // Ascenseur 1
+#define ASCENSEUR_2 9 // Ascenseur 2
 
 typedef struct {
     int numero;          // Numéro d'identification

@@ -35,17 +35,19 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
     MessageIPC message;
     Ascenseur ascenseur = {numero_ascenseur, 0, EN_ATTENTE, NEUTRE};
 
+    int message_type;
+    if (numero_ascenseur == 1) {
+        message_type = ASCENSEUR_1; // Type 8 pour l'ascenseur 1
+    } else if (numero_ascenseur == 2) {
+        message_type = ASCENSEUR_2; // Type 9 pour l'ascenseur 2
+    }
+
     while (1) {
-        // Recevoir les messages de type 2 (assignations du processus principal)
-        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), ascenseur.numero, 0) == -1) {
+        // Recevoir les messages spécifiques à cet ascenseur
+        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), message_type, 0) == -1) {
             perror("Erreur réception message");
             break;
         }
-
-        // // Vérifier que le message est destiné à cet ascenseur
-        // if (message.numero_ascenseur != ascenseur.numero) {
-        //     continue; // Ignorer si ce n'est pas pour cet ascenseur
-        // }
 
         printf("Ascenseur %d : Demande reçue pour l'étage %d\n",
                ascenseur.numero, message.etage_demande);
@@ -84,8 +86,8 @@ void processus_ascenseur(int numero_ascenseur, int file_id) {
             break;
         }
 
-        // Recevoir la destination de l'utilisateur pour un ascenseur specifique
-        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), ascenseur.numero, 0) == -1) {
+        // Recevoir la destination de l'utilisateur pour cet ascenseur
+        if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), message_type, 0) == -1) {
             perror("Erreur réception destination");
             break;
         }
