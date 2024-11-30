@@ -8,62 +8,64 @@
 #define NOMBRE_ASCENSEURS 2
 #define NOMBRE_ETAGES 10
 
-// Elevator States
-#define EN_ATTENTE    0   // Waiting for a request
-#define EN_MOUVEMENT  1   // Currently moving
-#define A_L_ARRET     2   // Stopped at a floor (doors open)
+// États des ascenseurs
+#define EN_ATTENTE    0   // En attente d'une requête
+#define EN_MOUVEMENT  1   // En mouvement
+#define A_L_ARRET     2   // À l'arrêt (portes ouvertes)
 
-// Elevator Directions
-#define MONTE         1   // Going up
-#define DESCEND      -1   // Going down
-#define NEUTRE        0   // Not moving
+// Directions des ascenseurs
+#define MONTE         1   // En montée
+#define DESCEND      -1   // En descente
+#define NEUTRE        0   // Neutre (pas de mouvement)
 
-// Message Types
-#define MSG_TYPE_REQUEST_FROM_CONTROLLER 1 // Request from the controller
-#define MSG_TYPE_REPLY_FROM_ELEVATOR     2 // Reply from the elevator
-#define MSG_TYPE_NOTIFY_ARRIVAL          3 // Notification of elevator arrival
-#define MSG_TYPE_STATUS_REQUEST          4 // Request for elevator status
-#define MSG_TYPE_STATUS_RESPONSE         5 // Response with elevator status
-#define MSG_TYPE_DESTINATION_REQUEST     6 // User's destination floor
+// Types de messages
+#define MSG_TYPE_REQUEST_FROM_CONTROLLER 1 // Requête du contrôleur
+#define MSG_TYPE_REPLY_FROM_ELEVATOR     2 // Réponse de l'ascenseur
+#define MSG_TYPE_NOTIFY_ARRIVAL          3 // Notification d'arrivée de l'ascenseur
+#define MSG_TYPE_STATUS_REQUEST          4 // Demande d'état des ascenseurs
+#define MSG_TYPE_STATUS_RESPONSE         5 // Réponse avec l'état des ascenseurs
+#define MSG_TYPE_DESTINATION_REQUEST     6 // Requête de destination de l'usager
 
-#define ASCENSEUR_1 8 // Message type for Elevator 1
-#define ASCENSEUR_2 9 // Message type for Elevator 2
+#define ASCENSEUR_1 8 // Type de message pour l'Ascenseur 1
+#define ASCENSEUR_2 9 // Type de message pour l'Ascenseur 2
 
-// Message Source Identifiers
-#define SOURCE_CONTROLLER 1 // Source identifier for the controller
-#define SOURCE_VISUALIZER 2 // Source identifier for the visualizer
+// Identifiants de source des messages
+#define SOURCE_CONTROLLER 1 // Contrôleur
+#define SOURCE_VISUALIZER 2 // Visualiseur
 
+// Structure représentant un ascenseur
 typedef struct {
-    int numero;          // Elevator number
-    int etage_actuel;    // Current floor
-    int etat;            // Elevator state (EN_ATTENTE, EN_MOUVEMENT, A_L_ARRET)
-    int direction;       // Direction (MONTE, DESCEND, NEUTRE)
+    int numero;          // Numéro de l'ascenseur
+    int etage_actuel;    // Étage actuel de l'ascenseur
+    int etat;            // État de l'ascenseur (EN_ATTENTE, EN_MOUVEMENT, A_L_ARRET)
+    int direction;       // Direction de l'ascenseur (MONTE, DESCEND, NEUTRE)
 } Ascenseur;
 
-// Structure containing all elevators
+// Structure regroupant tous les ascenseurs
 typedef struct {
-    Ascenseur ascenseurs[NOMBRE_ASCENSEURS];
+    Ascenseur ascenseurs[NOMBRE_ASCENSEURS]; // Tableau des ascenseurs
 } SystemeAscenseur;
 
-// Structure for inter-process messages
+// Structure pour les messages inter-processus
 typedef struct {
-    long type;             // Message type
-    int source;            // Message source (1 = controller, 2 = visualizer)
-    int etage_demande;     // Requested floor / current floor / destination
+    long type;             // Type de message
+    int source;            // Source du message (1 = contrôleur, 2 = visualiseur)
+    int etage_demande;     // Étage demandé / Étage actuel / Destination
     int direction;         // Direction (MONTE, DESCEND, NEUTRE)
-    int numero_ascenseur;  // Elevator number or Usager ID
-    int etat;              // Elevator state (EN_ATTENTE, EN_MOUVEMENT, A_L_ARRET)
+    int numero_ascenseur;  // Numéro de l'ascenseur
+    int etat;              // État de l'ascenseur (EN_ATTENTE, EN_MOUVEMENT, A_L_ARRET)
+    int usager_id;         // Identifiant unique de l'usager
 } MessageIPC;
 
-// Function prototypes
+// Prototypes des fonctions d'initialisation et de gestion des ascenseurs
 void initialiser_ascenseurs(SystemeAscenseur *systeme);
 void afficher_etat_ascenseurs(const SystemeAscenseur *systeme);
 void processus_ascenseur(int numero_ascenseur, int file_id);
 
-// Function to convert elevator state to a string
+// Fonction pour convertir l'état de l'ascenseur en chaîne de caractères
 const char* get_etat_str(int etat);
 
-// Function to convert elevator direction to a string
+// Fonction pour convertir la direction de l'ascenseur en chaîne de caractères
 const char* get_direction_str(int direction);
 
 #endif // ASCENSEUR_H

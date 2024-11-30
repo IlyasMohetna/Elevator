@@ -2,30 +2,34 @@
 #include <stdlib.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
-#include <unistd.h> // Added to use sleep function
+#include <unistd.h> // Ajouté pour utiliser la fonction sleep
+#include <string.h> // Ajouté pour memset
 #include "data/ascenseur.h"
 #include "data/immeuble.h"
 #include "data/usager.h"
 
-// Show the menu
+#define MAX_USAGERS 100
+int usager_elevator_map[MAX_USAGERS] = {0}; // Initialiser le mapping à 0
+
+// Afficher le menu
 void afficher_menu() {
     printf("\n=== Contrôleur d'Ascenseurs ===\n");
     printf("1. Faire une demande d'ascenseur\n");
     printf("2. Voir l'état des ascenseurs\n");
     printf("3. Quitter\n");
-    printf("4. Randomize demandes d'ascenseur\n"); // Added option 4
+    printf("4. Générer des demandes d'ascenseur aléatoires\n"); // Option existante 4
     printf("Votre choix : ");
 }
 
-// Request the list of elevators
+// Afficher la liste des ascenseurs et leur état
 void afficher_ascenseurs(int file_id) {
     MessageIPC message;
-    message.type = MSG_TYPE_STATUS_REQUEST; // Type 4: Demande d'état
-    message.source = 1; // 1 for Controller
+    message.type = MSG_TYPE_STATUS_REQUEST; // Type 4 : Demande d'état
+    message.source = SOURCE_CONTROLLER; // 1 pour Contrôleur
 
     // Envoyer la demande au processus principal
     if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
-        perror("[Controller] Error sending status request");
+        perror("[Contrôleur] Erreur lors de l'envoi de la demande d'état");
         return;
     }
 
@@ -33,7 +37,7 @@ void afficher_ascenseurs(int file_id) {
     printf("\n=== Liste des Ascenseurs ===\n");
     for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
         if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_STATUS_RESPONSE, 0) == -1) {
-            perror("[Controller] Error receiving elevator state");
+            perror("[Contrôleur] Erreur lors de la réception de l'état de l'ascenseur");
         } else {
             printf("Ascenseur %d :\n", message.numero_ascenseur);
             printf("  Étage actuel : %d\n", message.etage_demande);
@@ -44,7 +48,7 @@ void afficher_ascenseurs(int file_id) {
     }
 }
 
-// Make an elevator request
+// Effectuer une demande d'ascenseur
 void faire_demande(int file_id, Immeuble *immeuble) {
     MessageIPC message;
     message.type = MSG_TYPE_REQUEST_FROM_CONTROLLER; // Type 1
@@ -54,16 +58,16 @@ void faire_demande(int file_id, Immeuble *immeuble) {
 
     // Envoyer la demande au processus principal
     if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
-        perror("[Controller] Error sending elevator request");
+        perror("[Contrôleur] Erreur lors de l'envoi de la requête d'ascenseur");
     } else {
-        printf("[Controller] Request sent for floor %d.\n", message.etage_demande);
+        printf("[Contrôleur] Requête envoyée pour l'étage %d.\n", message.etage_demande);
     }
 
     // Attendre que l'ascenseur arrive à l'étage de l'utilisateur
     if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_NOTIFY_ARRIVAL, 0) == -1) {
-        perror("[Controller] Error receiving elevator arrival notification");
+        perror("[Contrôleur] Erreur lors de la réception de la notification d'arrivée de l'ascenseur");
     } else {
-        printf("[Controller] Elevator has arrived at your floor.\n");
+        printf("[Contrôleur] L'ascenseur est arrivé à votre étage.\n");
 
         // Demander l'étage de destination à l'utilisateur
         printf("Entrez l'étage de destination : ");
@@ -78,24 +82,24 @@ void faire_demande(int file_id, Immeuble *immeuble) {
 
         // Envoyer la destination à l'ascenseur
         if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
-            perror("[Controller] Error sending destination to elevator");
+            perror("[Contrôleur] Erreur lors de l'envoi de la destination à l'ascenseur");
         }
 
         // Attendre que l'ascenseur arrive à l'étage de destination
         if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_NOTIFY_ARRIVAL, 0) == -1) {
-            perror("[Controller] Error receiving arrival at destination");
+            perror("[Contrôleur] Erreur lors de la réception de l'arrivée à destination");
         } else {
-            printf("[Controller] Arrived at floor %d.\n", message.etage_demande);
-            // afficher les activité pour l'étage en question
+            printf("[Contrôleur] Arrivé à l'étage %d.\n", message.etage_demande);
+            // Afficher les activités pour l'étage en question
             activites_pour_etage(message.etage_demande, immeuble);
             printf("\n");
         }
     }
 }
 
-// Function to generate and send random elevator requests
-void randomize_demande(int file_id, Immeuble *immeuble, int nombre_demande) {
-    (void)immeuble; // Mark as unused to suppress compiler warning
+// Fonction pour générer et envoyer des requêtes d'ascenseur aléatoires
+void randomize_demande(int file_id, int nombre_demande) {
+    static int usager_id_counter = 1; // Initialiser le compteur d'ID d'usager
 
     for (int i = 0; i < nombre_demande; i++) {
         int etage_depart = rand() % NOMBRE_ETAGES;
@@ -104,21 +108,57 @@ void randomize_demande(int file_id, Immeuble *immeuble, int nombre_demande) {
             etage_arrivee = rand() % NOMBRE_ETAGES;
         }
 
-        MessageIPC message;
-        message.type = MSG_TYPE_REQUEST_FROM_CONTROLLER; // Type 1
-        message.source = SOURCE_CONTROLLER; // 1 for Controller
-        message.etage_demande = etage_depart;
-        message.numero_ascenseur = 0; // 0 can represent a system-generated request
+        int usager_id = usager_id_counter++;
 
-        // Send the request to the main process
-        if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
-            perror("[Controller] Error sending random elevator request");
-        } else {
-            printf("[Controller] Random Request %d: From Etage %d to Etage %d.\n", 
-                   i + 1, etage_depart, etage_arrivee);
+        // Créer et envoyer la requête de prise en charge
+        MessageIPC request;
+        memset(&request, 0, sizeof(request)); // Initialiser tous les champs à 0
+        request.type = MSG_TYPE_REQUEST_FROM_CONTROLLER; // Type 1
+        request.source = SOURCE_CONTROLLER;              // 1 pour Contrôleur
+        request.etage_demande = etage_depart;
+        request.numero_ascenseur = 0;                    // 0 indique une requête du contrôleur
+        request.usager_id = usager_id;                   // Assigner l'ID d'usager
+
+        if (msgsnd(file_id, &request, sizeof(request) - sizeof(long), 0) == -1) {
+            perror("[Contrôleur] Erreur lors de l'envoi de la requête d'ascenseur aléatoire");
+            continue;
         }
 
-        sleep(1); // Pause between requests for readability
+        printf("[Contrôleur] Requête Aléatoire %d : De l'Étage %d à l'Étage %d (Usager %d).\n", 
+               i + 1, etage_depart, etage_arrivee, usager_id);
+
+        // Attendre l'arrivée de l'ascenseur à l'étage de prise en charge
+        MessageIPC arrival;
+        if (msgrcv(file_id, &arrival, sizeof(arrival) - sizeof(long), MSG_TYPE_NOTIFY_ARRIVAL, 0) == -1) {
+            perror("[Contrôleur] Erreur lors de la réception de la notification d'arrivée de l'ascenseur");
+            continue;
+        }
+
+        // Mapper usager_id à numero_ascenseur
+        usager_elevator_map[usager_id] = arrival.numero_ascenseur;
+
+        printf("[Contrôleur] Ascenseur %d est arrivé à l'Étage %d pour l'Usager %d.\n", 
+               arrival.numero_ascenseur, arrival.etage_demande, usager_id);
+        
+        sleep(2); // Ajout d'un délai pour simuler l'utilisateur montant et pressant la destination
+
+        // Envoyer automatiquement l'étage de destination
+        MessageIPC destination;
+        memset(&destination, 0, sizeof(destination)); // Initialiser tous les champs à 0
+        destination.type = (arrival.numero_ascenseur == 1) ? ASCENSEUR_1 : ASCENSEUR_2;
+        destination.numero_ascenseur = arrival.numero_ascenseur;
+        destination.etage_demande = etage_arrivee;
+        destination.direction = (etage_arrivee > etage_depart) ? MONTE : DESCEND;
+        destination.usager_id = usager_id; // Assigner l'ID d'usager
+
+        if (msgsnd(file_id, &destination, sizeof(destination) - sizeof(long), 0) == -1) {
+            perror("[Contrôleur] Erreur lors de l'envoi de la destination à l'ascenseur");
+        } else {
+            printf("[Contrôleur] Destination Étage %d envoyée à l'Ascenseur %d pour l'Usager %d.\n", 
+                   etage_arrivee, arrival.numero_ascenseur, usager_id);
+        }
+
+        sleep(1); // Optionnel : pause entre les requêtes pour la lisibilité
     }
 }
 
@@ -142,11 +182,11 @@ int main() {
         } else if (choix == 3) {
             printf("Fermeture du contrôleur.\n");
             break;
-        } else if (choix == 4) { // Handle randomize option
+        } else if (choix == 4) { // Option existante 4
             int nombre_demande;
             printf("Entrez le nombre de demandes aléatoires à créer : ");
             scanf("%d", &nombre_demande);
-            randomize_demande(file_id, &immeuble, nombre_demande);
+            randomize_demande(file_id, nombre_demande);
         } else {
             printf("Choix invalide. Veuillez réessayer.\n");
         }

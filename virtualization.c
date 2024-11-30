@@ -50,8 +50,8 @@ void afficher_batiment_via_message_queue(int file_id) {
             for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
                 if (elevator_positions[i] == etage) {
                     const char *etat_str = (elevator_states[i] == EN_MOUVEMENT) ? "EN_MOUVEMENT" :
-                       (elevator_states[i] == A_L_ARRET) ? "A_L_ARRET" :
-                       (elevator_states[i] == EN_ATTENTE) ? "EN_ATTENTE" : "INCONNU";
+                                           (elevator_states[i] == A_L_ARRET) ? "A_L_ARRET" :
+                                           "EN_ATTENTE";
                     printf("[A%d - %s] ", i + 1, etat_str);
                 } else {
                     printf("              "); // Adjust spacing
