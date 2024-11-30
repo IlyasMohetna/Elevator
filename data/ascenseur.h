@@ -38,6 +38,7 @@ typedef struct {
 // Structure pour les messages entre processus
 typedef struct {
     long type;             // Type de message
+    int source;           // Source du message 1 = contrôleur, 2 = visualiser
     int etage_demande;     // Étage demandé / actuel / destination
     int direction;         // Direction (MONTE, DESCEND, NEUTRE)
     int numero_ascenseur;  // Numéro de l'ascenseur

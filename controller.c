@@ -28,6 +28,7 @@ void afficher_ascenseurs(int file_id) {
     // Recevoir les réponses de type 5
     printf("\n=== Liste des Ascenseurs ===\n");
     for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
+        printf("test\n");
         if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), MSG_TYPE_STATUS_RESPONSE, 0) == -1) {
             perror("[Controller] Error receiving elevator state");
         } else {
@@ -64,8 +65,8 @@ void faire_demande(int file_id, Immeuble *immeuble) {
         // Demander l'étage de destination à l'utilisateur
         printf("Entrez l'étage de destination : ");
         scanf("%d", &message.etage_demande);
-        message.type = MSG_TYPE_DESTINATION_REQUEST;
-        message.numero_ascenseur = message.numero_ascenseur; // Maintain assigned elevator
+        message.type = message.numero_ascenseur; // Envoyer au bon ascenseur
+        message.numero_ascenseur = message.numero_ascenseur; // Conserver le numéro de l'ascenseur
 
         // Envoyer la destination à l'ascenseur
         if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {

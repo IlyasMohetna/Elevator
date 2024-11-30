@@ -13,46 +13,48 @@ void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur, Immeuble *
 
     while (1) {
         printf("[Elevator] Waiting for messages...\n");
-        // Ne recevoir que les messages de type 1, 3 ou 4
+        // recevoir tout les messages et initialiser le message si il y en a un qui est recu sans erreur
         if (msgrcv(file_id, &message, sizeof(message) - sizeof(long), -MSG_TYPE_STATUS_REQUEST, 0) == -1) {
+            printf("[Elevator] Error receiving message\n");
             perror("[Elevator] Error receiving message");
-            break;
+            continue;
         }
 
-        if (message.type == MSG_TYPE_REQUEST_FROM_CONTROLLER) { // Demande du contrôleur
-            printf("[Elevator] Request received for floor %d\n", message.etage_demande);
+        // if (message.type == MSG_TYPE_REQUEST_FROM_CONTROLLER) { // Demande du contrôleur
+        //     printf("[Elevator] Request received for floor %d\n", message.etage_demande);
 
-            // Déterminer le meilleur ascenseur
-            int best_elevator = -1;
-            int min_distance = NOMBRE_ETAGES; // Nombre maximum d'étages
-            for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
-                Ascenseur *elevator = &systeme_ascenseur->ascenseurs[i];
-                if (elevator->etat == EN_ATTENTE) {
-                    int distance = abs(elevator->etage_actuel - message.etage_demande);
-                    if (distance < min_distance) {
-                        min_distance = distance;
-                        best_elevator = i;
-                    }
-                }
-            }
+        //     // Déterminer le meilleur ascenseur
+        //     int best_elevator = -1;
+        //     int min_distance = NOMBRE_ETAGES; // Nombre maximum d'étages
+        //     for (int i = 0; i < NOMBRE_ASCENSEURS; i++) {
+        //         Ascenseur *elevator = &systeme_ascenseur->ascenseurs[i];
+        //         if (elevator->etat == EN_ATTENTE) {
+        //             int distance = abs(elevator->etage_actuel - message.etage_demande);
+        //             if (distance < min_distance) {
+        //                 min_distance = distance;
+        //                 best_elevator = i;
+        //             }
+        //         }
+        //     }
 
-            if (best_elevator != -1) {
-                printf("[Elevator] Elevator %d selected for the request.\n", best_elevator + 1);
-                message.type = MSG_TYPE_ASSIGN_TO_ELEVATOR; // Assignation à l'ascenseur
-                message.numero_ascenseur = best_elevator + 1;
-                if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
-                    perror("[Elevator] Error sending message to elevator");
-                } else {
-                    // Mettre à jour l'état de l'ascenseur assigné
-                    systeme_ascenseur->ascenseurs[best_elevator].etat = EN_MOUVEMENT;
-                    systeme_ascenseur->ascenseurs[best_elevator].direction = 
-                        (message.etage_demande > systeme_ascenseur->ascenseurs[best_elevator].etage_actuel) ? MONTE : DESCEND;
-                }
-            } else {
-                printf("[Elevator] No available elevators.\n");
-            }
+        //     if (best_elevator != -1) {
+        //         printf("[Elevator] Elevator %d selected for the request.\n", best_elevator + 1);
+        //         message.type = best_elevator + 1; // Assignation à l'ascenseur spécifique
+        //         message.numero_ascenseur = best_elevator + 1;
+        //         if (msgsnd(file_id, &message, sizeof(message) - sizeof(long), 0) == -1) {
+        //             perror("[Elevator] Error sending message to elevator");
+        //         } else {
+        //             // Mettre à jour l'état de l'ascenseur assigné
+        //             systeme_ascenseur->ascenseurs[best_elevator].etat = EN_MOUVEMENT;
+        //             systeme_ascenseur->ascenseurs[best_elevator].direction = 
+        //                 (message.etage_demande > systeme_ascenseur->ascenseurs[best_elevator].etage_actuel) ? MONTE : DESCEND;
+        //         }
+        //     } else {
+        //         printf("[Elevator] No available elevators.\n");
+        //     }
 
-        } else if (message.type == MSG_TYPE_REPLY_FROM_ELEVATOR) { // Réponse d'un ascenseur
+        // } 
+        if (message.type == MSG_TYPE_REPLY_FROM_ELEVATOR) { // Réponse d'un ascenseur
             printf("[Elevator] Response received: Elevator %d reached floor %d\n",
                    message.numero_ascenseur, message.etage_demande);
 
@@ -62,6 +64,8 @@ void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur, Immeuble *
             // Mettre à jour l'état de l'ascenseur concerné
             int idx = message.numero_ascenseur - 1;
             systeme_ascenseur->ascenseurs[idx].etage_actuel = message.etage_demande;
+
+            // **Mettre l'état à EN_ATTENTE ici**
             systeme_ascenseur->ascenseurs[idx].etat = EN_ATTENTE;
             systeme_ascenseur->ascenseurs[idx].direction = NEUTRE;
 
@@ -82,7 +86,8 @@ void handle_message(int file_id, SystemeAscenseur *systeme_ascenseur, Immeuble *
                     printf("[Elevator] Sent status for elevator %d\n", response.numero_ascenseur);
                 }
             }
-        } else {
+        }
+        else {
             printf("[Elevator] Ignored message of type: %ld\n", message.type);
             // Ignorer les messages non destinés au processus principal
         }
